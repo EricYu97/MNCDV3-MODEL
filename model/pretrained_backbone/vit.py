@@ -31,7 +31,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as cp
 
-from checkpoint import my_load_checkpoint as load_checkpoint
+from .checkpoint import my_load_checkpoint as load_checkpoint
 import logging
 from timm.models.layers import DropPath, Mlp, to_2tuple
 
