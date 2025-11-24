@@ -5,7 +5,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .msdeform_dino import MSDeformAttn
+from .msdeform import MSDeformAttn
 from timm.models.layers import trunc_normal_
 from torch.nn.init import normal_
 

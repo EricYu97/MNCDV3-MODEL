@@ -406,9 +406,9 @@ class UperNet(UperNetPreTrainedModel):
         if labels is not None:
             # compute weighted loss
             loss_fct = CrossEntropyLoss(ignore_index=self.config.loss_ignore_index)
-            loss = loss_fct(logits, labels)
+            loss = loss_fct(logits, labels.long())
             if auxiliary_logits is not None:
-                auxiliary_loss = loss_fct(auxiliary_logits, labels)
+                auxiliary_loss = loss_fct(auxiliary_logits, labels.long())
                 loss += self.config.auxiliary_loss_weight * auxiliary_loss
         # print("upsampled", logits.shape)
         return SemanticSegmenterOutput(
@@ -567,9 +567,9 @@ class UperNetCD(UperNetPreTrainedModel):
         if labels is not None:
             # compute weighted loss
             loss_fct = CrossEntropyLoss(ignore_index=self.config.loss_ignore_index)
-            loss = loss_fct(logits, labels)
+            loss = loss_fct(logits, labels.long())
             if auxiliary_logits is not None:
-                auxiliary_loss = loss_fct(auxiliary_logits, labels)
+                auxiliary_loss = loss_fct(auxiliary_logits, labels.long())
                 loss += self.config.auxiliary_loss_weight * auxiliary_loss
 
         return SemanticSegmenterOutput(

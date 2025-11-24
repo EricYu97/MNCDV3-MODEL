@@ -1,5 +1,5 @@
-from pretrained_backbone.ViT_Adapter_Bitemporal import ViTAdapter
-from decoder.upernet import SemanticSegmentationHead, ChangeDetectionHead
+from .pretrained_backbone.ViT_Adapter_Bitemporal import ViTAdapter
+from .decoder.upernet import SemanticSegmentationHead, ChangeDetectionHead
 import torch.nn as nn
 from thop import profile
 import torch 
@@ -11,7 +11,7 @@ class MNCDV3_Model(nn.Module):
         pretrain_size=224,
         img_size=224,
         patch_size=16,
-        in_chans=3,
+        in_chans=9,
         embed_dim=768,
         depth=12,
         num_heads=12,
@@ -37,12 +37,12 @@ class MNCDV3_Model(nn.Module):
         self.seg_decoder=SemanticSegmentationHead(num_labels=6, embed_dims=768, img_size=224)
 
 
-    def forward(self, x1, x2):
+    def forward(self, x1, x2, x1_label=None, x2_label=None, change_label=None):
         CD_Feature, x1_features_seg, x2_features_seg = self.backbone(x1, x2)
 
-        cd_outputs = self.CD_decoder(CD_Feature)
-        x1_seg_outputs = self.seg_decoder(x1_features_seg)
-        x2_seg_outputs = self.seg_decoder(x2_features_seg)
+        cd_outputs = self.CD_decoder(CD_Feature, labels=change_label)
+        x1_seg_outputs = self.seg_decoder(x1_features_seg, labels=x1_label)
+        x2_seg_outputs = self.seg_decoder(x2_features_seg, labels=x2_label)
 
         # return CD_Feature, x1_features_seg, x2_features_seg
         return cd_outputs, x1_seg_outputs, x2_seg_outputs

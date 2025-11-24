@@ -4,7 +4,7 @@ from functools import partial
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint as cp
-from .msdeform_dino import MSDeformAttn
+from .msdeform import MSDeformAttn
 from timm.models.layers import DropPath
 
 _logger = logging.getLogger(__name__)
@@ -236,12 +236,12 @@ class InteractionBlockWithCls(nn.Module):
 
 
 class SpatialPriorModule(nn.Module):
-    def __init__(self, inplanes=64, embed_dim=384, with_cp=False):
+    def __init__(self, in_chans=9, inplanes=64, embed_dim=384, with_cp=False):
         super().__init__()
         self.with_cp = with_cp
 
         self.stem = nn.Sequential(*[
-            nn.Conv2d(3, inplanes, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.Conv2d(in_chans, inplanes, kernel_size=3, stride=2, padding=1, bias=False),
             nn.SyncBatchNorm(inplanes),
             nn.ReLU(inplace=True),
             nn.Conv2d(inplanes, inplanes, kernel_size=3, stride=1, padding=1, bias=False),
