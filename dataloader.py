@@ -13,12 +13,47 @@ MNCD_Dataset_Original_Stats={'mean':[0.1431, 0.1453, 0.1640, 0.1821, 0.2204, 0.2
                               'std':[0.0670, 0.0801, 0.1092, 0.1029, 0.0874, 0.0873, 0.0852, 0.1134, 0.1070],
                               'min':[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                               'max':[1.2238, 1.6399, 1.7502, 1.8151, 1.6399, 2.3133, 2.4306, 1.717, 2.6611]}
-
+area_split = {
+    "train": [
+        "Chuquicanmata_Mine",
+        "Kansanshi_Mine",
+        "Tiden_Mine",
+        "Climax_Mine",
+        "Erdenet_Mine",
+        "Awonsu_Mine",
+        "Sierra_Gorda_Mine",
+        "Mission_Mine",
+        "Constancia_Mine",
+        "Sossego_Mine",
+        "Cannington_Mine_UG",
+        "Rosia_Poieni_Mine",
+        "Neves_Corvo_Mine",
+        "Black_Mount_Mine",
+        "Damtshaa_Mine",
+        "Mt_Rawdon_Mine"
+    ],
+    "val": [
+        "Essakane_Mine",
+        "Savage_River_Mine",
+        "Mount_Isa_Mine"
+    ],
+    "test": [
+        "Aitik_Mine",
+        "Boddington_Mine",
+        "Olimpiada_Mine",
+        "Jwaneng_Mine",
+        "Kevitsa_Mine",
+        "Zijin_Tongshan_Mine"
+    ]
+}
 class MNCDV3_Dataset(torch.utils.data.Dataset):
-    def __init__(self, root_path, normalization=None):
+    def __init__(self, root_path, normalization=None, mode='train'):
         self.root_path = root_path
         self.normalization = normalization
+        
+        self.mode=mode
         self.get_domain_data_list(self.root_path)
+
         self.palette=np.array([[255, 255, 255],
                            [255, 0, 0],
                            [0, 255, 0],
@@ -27,7 +62,8 @@ class MNCDV3_Dataset(torch.utils.data.Dataset):
                            [255, 0, 255]], np.uint8)
         self.normalize_function = tfs.Normalize(mean=MNCD_Dataset_Patchwise_Stats['mean'],std=MNCD_Dataset_Patchwise_Stats['std'])
     def get_domain_data_list(self, root_path):
-        self.domains= os.listdir(root_path)
+        # self.domains= os.listdir(root_path)
+        self.domains= area_split['train'] if self.mode =='train' else area_split['val'] if self.mode=='val' else area_split['test']
         self.all_data_list = []
         for domain in self.domains:
             domain_path = os.path.join(root_path, domain)

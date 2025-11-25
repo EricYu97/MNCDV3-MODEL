@@ -9,17 +9,24 @@ from torchmetrics import F1Score
 def train():
     accelerator= accelerate.Accelerator()
     epoch=20
-    dataset=MNCDV3_Dataset(root_path='MNCDV3_Bitemporal_Cropped_Size224_Step112_3695Samples', normalization=True)
-    dataloader=torch.utils.data.DataLoader(dataset, batch_size=16, shuffle=True, num_workers=16)
+
+    train_dataset=MNCDV3_Dataset(root_path='MNCDV3_Bitemporal_Cropped_Size224_Step112_3695Samples', normalization=True, mode='train')
+    val_dataset=MNCDV3_Dataset(root_path='MNCDV3_Bitemporal_Cropped_Size224_Step112_3695Samples', normalization=True, mode='val')
+    test_dataset=MNCDV3_Dataset(root_path='MNCDV3_Bitemporal_Cropped_Size224_Step112_3695Samples', normalization=True, mode='test')
+
+    train_dataloader=torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=16)
+    val_dataloader=torch.utils.data.DataLoader(val_dataset, batch_size=16, shuffle=False, num_workers=16)
+
+    print(f"Dataset and Dataloader prepared for training {len(train_dataset)} samples and validating {len(val_dataset)} samples and testing {len(test_dataset)} samples.")
 
     model=MNCDV3_Model()
     optimizer=torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-2)
     scheduler=torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epoch)
 
-    dataloader, model, optimizer, scheduler = accelerator.prepare(dataloader, model, optimizer, scheduler)
+    train_dataloader, val_dataloader, model, optimizer, scheduler = accelerator.prepare(train_dataloader, val_dataloader, model, optimizer, scheduler)
 
     for ep in range(epoch):
-        epoch_loss = train_one_epoch(model, dataloader, optimizer, scheduler, accelerator)
+        epoch_loss = train_one_epoch(model, train_dataloader, optimizer, scheduler, accelerator)
         print(f"Epoch {ep+1}/{epoch}, Loss: {epoch_loss:.4f}")
 
 def train_one_epoch(model, dataloader, optimizer, scheduler, accelerator):

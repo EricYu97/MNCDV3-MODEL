@@ -298,13 +298,16 @@ def compute_mean_std_cropped(cropped_root, max_patches=None, scale_factor=1.0):
 
 def main():
     root_path = './MineNetCDV3_Processed_NEW'
-    save_path = './MNCDV3_Bitemporal_Cropped_Size224_Step112_2788Samples'
+    patch_size, step_size = 224, 112
+    save_path = f'./MNCDV3_Bitemporal_Cropped_Size{patch_size}_Step{step_size}'
     if not os.path.exists(root_path):
         print(f"Root path '{root_path}' does not exist")
         return {}
 
     total_patches = 0
     domain_stats = get_domain_image_stats(root_path)
+
+    
 
     # cropped_root = 'MNCDV3_Bitemporal_Cropped_Size256_Step128_2788Samples'
     # # Set your scale factor here (e.g., 1e-4)
@@ -325,29 +328,36 @@ def main():
     #     print("Original dataset per-channel max :", max_v)
 
     # Cropping Images and Labels
+
+    patches=[]
+    domains=[]
+
     for domain, stats in domain_stats.items():
         pre_image, post_image, pre_label, post_label = read_image_per_domain(stats)
         # print(pre_image.shape, post_image.shape, pre_label.shape, post_label.shape)
         if pre_image is not None:
             domain_save_path_pre_img = os.path.join(save_path, domain, 'pre', 'image')
             os.makedirs(domain_save_path_pre_img, exist_ok=True)
-            n_pre_img=crop_and_save_patches(domain_save_path_pre_img, 'pre', 224, 112, pre_image)
+            n_pre_img=crop_and_save_patches(domain_save_path_pre_img, 'pre', patch_size, step_size, pre_image)
         if post_image is not None:
             domain_save_path_post_img = os.path.join(save_path, domain, 'post', 'image')
             os.makedirs(domain_save_path_post_img, exist_ok=True)
-            n_post_img=crop_and_save_patches(domain_save_path_post_img, 'post', 224, 112, post_image)
+            n_post_img=crop_and_save_patches(domain_save_path_post_img, 'post', patch_size, step_size, post_image)
         if pre_label is not None:
             domain_save_path_pre_label = os.path.join(save_path, domain, 'pre', 'label')
             os.makedirs(domain_save_path_pre_label, exist_ok=True)
-            n_pre_label=crop_and_save_patches_rgb_label(domain_save_path_pre_label, 'pre_label', 224, 112, pre_label)
+            n_pre_label=crop_and_save_patches_rgb_label(domain_save_path_pre_label, 'pre_label', patch_size, step_size, pre_label)
         if post_label is not None:
             domain_save_path_post_label = os.path.join(save_path, domain, 'post', 'label')
             os.makedirs(domain_save_path_post_label, exist_ok=True)
-            n_post_label=crop_and_save_patches_rgb_label(domain_save_path_post_label, 'post_label', 224, 112, post_label)
+            n_post_label=crop_and_save_patches_rgb_label(domain_save_path_post_label, 'post_label', patch_size, step_size, post_label)
         assert n_pre_img == n_post_img == n_pre_label == n_post_label, f"Mismatch in number of patches for domain {domain}"
         print(f"Domain {domain} shape of {pre_image.shape[1:]} processed successfully with {n_pre_img} patches.")
         total_patches += n_pre_img
+        patches.append(n_pre_img)
+        domains.append(domain)
 
+    print(dict(zip(domains, patches)))
     print(f"Total patches processed across all domains: {total_patches}")
 
 if __name__ == "__main__":
