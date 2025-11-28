@@ -3,14 +3,16 @@
 #SBATCH --output=%x-%A.out
 #SBATCH --time=2-0:0:0
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=64
+#SBATCH --cpus-per-task=32
 #SBATCH --mem-per-cpu=8G
 #SBATCH --gres=gpu:4
 
 #SBATCH --partition=gpu-h100
-
-
 # module load python/3.11
 module load apptainer
 
-OMP_NUM_THREADS=4 apptainer exec --nv --bind /bigdata:/bigdata /bigdata/3dabc/MNCD/container/MMCV/ python train.py
+nvidia-smi
+
+# OMP_NUM_THREADS=4 apptainer exec --nv --bind /bigdata:/bigdata /bigdata/3dabc/containers/ROSI/MNCDV3 accelerate launch train.py
+
+OMP_NUM_THREADS=4 NCCL_DEBUG=INFO NCCL_NVLS_ENABLE=0 apptainer exec --nv --bind /bigdata:/bigdata /bigdata/3dabc/containers/ROSI/MNCDV3 torchrun --nproc_per_node=4 train.py

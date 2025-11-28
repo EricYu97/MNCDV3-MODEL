@@ -1,13 +1,16 @@
 import torch
 from tqdm import tqdm
 from model.model import MNCDV3_Model
-import accelerate
 from dataloader import MNCDV3_Dataset
 import os
 from torchmetrics import F1Score
 
+from accelerate import DistributedDataParallelKwargs, Accelerator
+
+
 def train():
-    accelerator= accelerate.Accelerator()
+    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
+    accelerator = Accelerator(kwargs_handlers=[ddp_kwargs])
     epoch=20
 
     train_dataset=MNCDV3_Dataset(root_path='/bigdata/3dabc/MNCD/MNCDV3_Bitemporal_Cropped_Size224_Step112', normalization=True, mode='train')
@@ -146,12 +149,10 @@ def evaluate_model(model, val_dataloader, epoch, accelerator, save_suffix):
     if accelerator.is_local_main_process:
         print(f"Evaluation for Epoch {epoch} Completed, Seg_F1: {seg_f1}, CD_F1: {cd_f1}")
 
-    # Save model (unwrapped)
-    save_pretrained_path = f"./exp/{save_suffix}/{epoch}.pth"
-    os.makedirs(save_pretrained_path, exist_ok=True)
-    torch.save(save_pretrained_path, accelerator.unwrap_model(model).state_dict())
-    # accelerator.unwrap_model(model).save_pretrained(save_pretrained_path)
-    print(f"Saved model to {save_pretrained_path}")
+        save_pretrained_path = f"./exp/{save_suffix}/"
+        os.makedirs(os.path.dirname(save_pretrained_path), exist_ok=True)
+        torch.save(model.module.state_dict(), f'{save_pretrained_path}/{epoch}.pth')
+        print(f"Saved model to {save_pretrained_path}")
 
 if __name__ == "__main__":
     train()

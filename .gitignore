@@ -4,3 +4,4 @@ __pycache__
 *.tif
 *.zip
 *.out
+*.pth
