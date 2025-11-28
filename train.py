@@ -74,8 +74,8 @@ def evaluate_model(model, val_dataloader, epoch, accelerator, save_suffix):
     device = accelerator.device
     num_classes_cd = 2  # Assuming binary change detection; modify if needed.
     # Metrics on device
-    b_f1 = F1Score(task='multiclass', num_classes=6).to(device)
-    m_f1 = F1Score(task='multiclass', num_classes=2).to(device)
+    b_f1 = F1Score(task='multiclass', num_classes=6, average=None).to(device)
+    m_f1 = F1Score(task='multiclass', num_classes=2, average=None).to(device)
 
     with torch.no_grad():
         for idx, batch in enumerate(tqdm(val_dataloader, disable=not accelerator.is_local_main_process)):
