@@ -6,16 +6,16 @@ import os
 from torchmetrics import F1Score
 
 from accelerate import DistributedDataParallelKwargs, Accelerator
+import argparse
 
-
-def train():
+def train(args):
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
     accelerator = Accelerator(kwargs_handlers=[ddp_kwargs])
     epoch=20
 
-    train_dataset=MNCDV3_Dataset(root_path='/bigdata/3dabc/MNCD/MNCDV3_Bitemporal_Cropped_Size224_Step112', normalization=True, mode='train')
-    val_dataset=MNCDV3_Dataset(root_path='/bigdata/3dabc/MNCD/MNCDV3_Bitemporal_Cropped_Size224_Step112', normalization=True, mode='val')
-    test_dataset=MNCDV3_Dataset(root_path='/bigdata/3dabc/MNCD/MNCDV3_Bitemporal_Cropped_Size224_Step112', normalization=True, mode='test')
+    train_dataset=MNCDV3_Dataset(root_path=args.root_path, normalization=True, mode='train')
+    val_dataset=MNCDV3_Dataset(root_path=args.root_path, normalization=True, mode='val')
+    test_dataset=MNCDV3_Dataset(root_path=args.root_path, normalization=True, mode='test')
 
     train_dataloader=torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=16)
     val_dataloader=torch.utils.data.DataLoader(val_dataset, batch_size=16, shuffle=False, num_workers=16)
@@ -131,28 +131,33 @@ def evaluate_model(model, val_dataloader, epoch, accelerator, save_suffix):
             b_f1.update(x1_pred.flatten(), pre_label.flatten())
             b_f1.update(x2_pred.flatten(), post_label.flatten())
 
-            # Prepare CD ground truth:
-            if num_classes_cd == 2:
-                cd_true = (post_label != pre_label).long()
-            else:
-                cd_true = (post_label - pre_label).long()
-                cd_true[cd_true == -1] = 0
-
             cd_pred = torch.argmax(cd_logits, dim=1)
-            m_f1.update(cd_pred.flatten(), cd_true.flatten())
+            m_f1.update(cd_pred.flatten(), change_label.flatten())
+            print(torch.unique(cd_pred), torch.unique(x1_pred), torch.unique(x2_pred))
+            print(x1_logits.shape, x2_logits.shape, cd_logits.shape)
 
     # Compute metrics (may return tensors moved to device)
     cd_f1 = m_f1.compute()
     seg_f1 = b_f1.compute()
 
     # Print results (only on main process)
+
+
     if accelerator.is_local_main_process:
         print(f"Evaluation for Epoch {epoch} Completed, Seg_F1: {seg_f1}, CD_F1: {cd_f1}")
 
         save_pretrained_path = f"./exp/{save_suffix}/"
         os.makedirs(os.path.dirname(save_pretrained_path), exist_ok=True)
-        torch.save(model.module.state_dict(), f'{save_pretrained_path}/{epoch}.pth')
+        torch.save(accelerator.unwrap_model(model).state_dict(), f'{save_pretrained_path}/{epoch}.pth')
         print(f"Saved model to {save_pretrained_path}")
 
 if __name__ == "__main__":
-    train()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--root_path",
+        type=str,
+        default="/bigdata/3dabc/MNCD/MNCDV3_Bitemporal_Cropped_Size224_Step112",
+        help="dataset root path"
+    )
+    args = parser.parse_args()
+    train(args)
