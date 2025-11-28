@@ -10,9 +10,9 @@ def train():
     accelerator= accelerate.Accelerator()
     epoch=20
 
-    train_dataset=MNCDV3_Dataset(root_path='MNCDV3_Bitemporal_Cropped_Size224_Step112_3695Samples', normalization=True, mode='train')
-    val_dataset=MNCDV3_Dataset(root_path='MNCDV3_Bitemporal_Cropped_Size224_Step112_3695Samples', normalization=True, mode='val')
-    test_dataset=MNCDV3_Dataset(root_path='MNCDV3_Bitemporal_Cropped_Size224_Step112_3695Samples', normalization=True, mode='test')
+    train_dataset=MNCDV3_Dataset(root_path='/bigdata/3dabc/MNCD/MNCDV3_Bitemporal_Cropped_Size224_Step112', normalization=True, mode='train')
+    val_dataset=MNCDV3_Dataset(root_path='/bigdata/3dabc/MNCD/MNCDV3_Bitemporal_Cropped_Size224_Step112', normalization=True, mode='val')
+    test_dataset=MNCDV3_Dataset(root_path='/bigdata/3dabc/MNCD/MNCDV3_Bitemporal_Cropped_Size224_Step112', normalization=True, mode='test')
 
     train_dataloader=torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=16)
     val_dataloader=torch.utils.data.DataLoader(val_dataset, batch_size=16, shuffle=False, num_workers=16)
@@ -28,6 +28,8 @@ def train():
     for ep in range(epoch):
         epoch_loss = train_one_epoch(model, train_dataloader, optimizer, scheduler, accelerator)
         print(f"Epoch {ep+1}/{epoch}, Loss: {epoch_loss:.4f}")
+        if ep % 2 == 1:
+            evaluate_model(model, val_dataloader, ep+1, accelerator, save_suffix='MNCDV3_Model')
 
 def train_one_epoch(model, dataloader, optimizer, scheduler, accelerator):
     model.train()
@@ -54,7 +56,7 @@ def train_one_epoch(model, dataloader, optimizer, scheduler, accelerator):
         running_loss += loss.item()
 
         if i % 50 == 49:
-            print(f"  Batch {i+1}, Total Loss: {loss.item():.4f}, Seg_Loss: {x1_seg_loss.item()+x2_seg_loss.item():.4f}, Seg_Loss: {cd_loss.item():.4f}")
+            print(f"  Batch {i+1}, Total Loss: {loss.item():.4f}, Seg_Loss: {x1_seg_loss.item()+x2_seg_loss.item():.4f}, CD_Loss: {cd_loss.item():.4f}")
     epoch_loss = running_loss/(i+1)
     return epoch_loss
 
@@ -84,7 +86,7 @@ def evaluate_model(model, val_dataloader, epoch, accelerator, save_suffix):
             post_label = post_label.to(device)
 
             # Forward pass without labels -> get logits/predictions
-            outputs = model(pre_image=pre_image, post_image=post_image, mode='both')
+            outputs = model(x1=pre_image, x2=post_image)
 
             # Support models that return (cd_out, x1_out, x2_out) where each may be an object with .logits
             cd_logits = None
@@ -145,9 +147,10 @@ def evaluate_model(model, val_dataloader, epoch, accelerator, save_suffix):
         print(f"Evaluation for Epoch {epoch} Completed, Seg_F1: {seg_f1}, CD_F1: {cd_f1}")
 
     # Save model (unwrapped)
-    save_pretrained_path = f"./exp/{save_suffix}/{epoch}"
+    save_pretrained_path = f"./exp/{save_suffix}/{epoch}.pth"
     os.makedirs(save_pretrained_path, exist_ok=True)
-    accelerator.unwrap_model(model).save_pretrained(save_pretrained_path)
+    torch.save(save_pretrained_path, accelerator.unwrap_model(model).state_dict())
+    # accelerator.unwrap_model(model).save_pretrained(save_pretrained_path)
     print(f"Saved model to {save_pretrained_path}")
 
 if __name__ == "__main__":

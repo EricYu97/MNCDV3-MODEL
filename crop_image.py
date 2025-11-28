@@ -297,9 +297,9 @@ def compute_mean_std_cropped(cropped_root, max_patches=None, scale_factor=1.0):
     return mean, std, min_c, max_c
 
 def main():
-    root_path = './MineNetCDV3_Processed_NEW'
+    root_path = '/bigdata/3dabc/MNCD/MineNetCDV3_Data'
     patch_size, step_size = 224, 112
-    save_path = f'./MNCDV3_Bitemporal_Cropped_Size{patch_size}_Step{step_size}'
+    save_path = f'/bigdata/3dabc/MNCD/MNCDV3_Bitemporal_Cropped_Size{patch_size}_Step{step_size}'
     if not os.path.exists(root_path):
         print(f"Root path '{root_path}' does not exist")
         return {}
