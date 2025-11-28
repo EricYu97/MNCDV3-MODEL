@@ -7,6 +7,7 @@ from torchmetrics import F1Score
 
 from accelerate import DistributedDataParallelKwargs, Accelerator
 import argparse
+import torch.nn.functional as F
 
 def train(args):
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
@@ -100,24 +101,10 @@ def evaluate_model(model, val_dataloader, epoch, accelerator, save_suffix):
                 cd_logits = getattr(cd_out, "logits", cd_out)
                 x1_logits = getattr(x1_out, "logits", x1_out)
                 x2_logits = getattr(x2_out, "logits", x2_out)
-            elif isinstance(outputs, dict):
-                # try common keys
-                cd_logits = outputs.get("cd_logits") or outputs.get("cd_preds") or outputs.get("cd")
-                seg_preds = outputs.get("seg_preds") or outputs.get("seg_logits") or outputs.get("seg")
-                if isinstance(seg_preds, (list, tuple)) and len(seg_preds) >= 2:
-                    x1_logits, x2_logits = seg_preds[0], seg_preds[1]
-                elif isinstance(seg_preds, torch.Tensor):
-                    # assume seg_preds contains two frames concatenated on batch dimension
-                    # try to split batch in two equal parts
-                    b = seg_preds.shape[0]
-                    half = b // 2
-                    x1_logits, x2_logits = seg_preds[:half], seg_preds[half:half*2]
-            else:
-                # fallback: outputs might directly be logits for cd/seg
-                # attempt to infer by shape
-                if isinstance(outputs, torch.Tensor):
-                    # unknown meaning, skip
-                    continue
+
+            cd_logits=F.softmax(cd_logits, dim=1) if cd_logits is not None else None
+            x1_logits=F.softmax(x1_logits, dim=1) if x1_logits is not None else None  
+            x2_logits=F.softmax(x2_logits, dim=1) if x2_logits is not None else None
 
             # If any logits still None, skip this batch (safer than crashing)
             if x1_logits is None or x2_logits is None or cd_logits is None:
@@ -133,8 +120,9 @@ def evaluate_model(model, val_dataloader, epoch, accelerator, save_suffix):
 
             cd_pred = torch.argmax(cd_logits, dim=1)
             m_f1.update(cd_pred.flatten(), change_label.flatten())
-            print(torch.unique(cd_pred), torch.unique(x1_pred), torch.unique(x2_pred))
-            print(x1_logits.shape, x2_logits.shape, cd_logits.shape)
+            print("Uniques", torch.unique(cd_pred), torch.unique(x1_pred), torch.unique(x2_pred), torch.unique(change_label), torch.unique(pre_label), torch.unique(post_label))
+            print("Counts", torch.count_nonzero(cd_pred), torch.count_nonzero(x1_pred), torch.count_nonzero(x2_pred), torch.count_nonzero(change_label), torch.count_nonzero(pre_label), torch.count_nonzero(post_label))
+            print("Shape", x1_pred.shape, x2_pred.shape, cd_pred.shape, pre_label.shape, post_label.shape, change_label.shape)
 
     # Compute metrics (may return tensors moved to device)
     cd_f1 = m_f1.compute()

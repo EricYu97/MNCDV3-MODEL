@@ -137,6 +137,9 @@ class ViTAdapter(TIMMVisionTransformer):
         c3 = c3.transpose(1, 2).view(bs, dim, H, W).contiguous()
         c4 = c4.transpose(1, 2).view(bs, dim, H // 2, W // 2).contiguous()
         c1 = self.up(c2) + c1
+
+        vit_c1, vit_c2, vit_c3, vit_c4 = c1, c2, c3, c4
+
         f1 = self.diff_norm1(c1)
         f2 = self.diff_norm2(c2)
         f3 = self.diff_norm3(c3)
@@ -149,7 +152,7 @@ class ViTAdapter(TIMMVisionTransformer):
             x1 = F.interpolate(x1, scale_factor=4, mode='bilinear', align_corners=False)
             x2 = F.interpolate(x2, scale_factor=2, mode='bilinear', align_corners=False)
             x4 = F.interpolate(x4, scale_factor=0.5, mode='bilinear', align_corners=False)
-            c1, c2, c3, c4 = c1 + x1, c2 + x2, c3 + x3, c4 + x4
+            c1, c2, c3, c4 = vit_c1 + x1, vit_c2 + x2, vit_c3 + x3, vit_c4 + x4
         f1 = self.norm1(c1)
         f2 = self.norm2(c2)
         f3 = self.norm3(c3)
@@ -161,7 +164,7 @@ class ViTAdapter(TIMMVisionTransformer):
             x1 = F.interpolate(x1, scale_factor=4, mode='bilinear', align_corners=False)
             x2 = F.interpolate(x2, scale_factor=2, mode='bilinear', align_corners=False)
             x4 = F.interpolate(x4, scale_factor=0.5, mode='bilinear', align_corners=False)
-            c1, c2, c3, c4 = c1 + x1, c2 + x2, c3 + x3, c4 + x4
+            c1, c2, c3, c4 = vit_c1 + x1, vit_c2 + x2, vit_c3 + x3, vit_c4 + x4
         f1 = self.norm1(c1)
         f2 = self.norm2(c2)
         f3 = self.norm3(c3)

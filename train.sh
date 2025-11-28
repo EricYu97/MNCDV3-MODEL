@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=Training-MNCDV3
-#SBATCH --output=%x-%A.out
+#SBATCH --output=./out_logs/%x-%A.out
 #SBATCH --time=2-0:0:0
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
@@ -15,4 +15,6 @@ nvidia-smi
 
 # OMP_NUM_THREADS=4 apptainer exec --nv --bind /bigdata:/bigdata /bigdata/3dabc/containers/ROSI/MNCDV3 accelerate launch train.py
 
-OMP_NUM_THREADS=4 NCCL_DEBUG=INFO NCCL_NVLS_ENABLE=0 apptainer exec --nv --bind /bigdata:/bigdata /bigdata/3dabc/containers/ROSI/MNCDV3 torchrun --nproc_per_node=4 train.py
+# OMP_NUM_THREADS=4 NCCL_DEBUG=INFO NCCL_NVLS_ENABLE=0 apptainer exec --nv --bind /bigdata:/bigdata /bigdata/3dabc/containers/ROSI/MNCDV3 accelerate launch train.py
+
+OMP_NUM_THREADS=4 NCCL_NVLS_ENABLE=0 apptainer exec --nv --bind /bigdata:/bigdata /bigdata/3dabc/containers/ROSI/MNCDV3 accelerate launch train.py
