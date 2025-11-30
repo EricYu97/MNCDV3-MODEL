@@ -257,7 +257,7 @@ class TIMMVisionTransformer(nn.Module):
     Includes distillation token & head support for `DeiT: Data-efficient Image Transformers`
         - https://arxiv.org/abs/2012.12877
     """
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000,
+    def __init__(self, img_size=224, patch_size=16, in_chans=9, num_classes=1000,
                  embed_dim=768, depth=12, num_heads=12, mlp_ratio=4., qkv_bias=True,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0., layer_scale=True,
                  embed_layer=PatchEmbed, norm_layer=partial(nn.LayerNorm, eps=1e-6),
@@ -292,6 +292,8 @@ class TIMMVisionTransformer(nn.Module):
         self.pretrain_size = img_size
         self.drop_path_rate = drop_path_rate
         self.drop_rate = drop_rate
+
+        self.cls_token = None
 
         window_attn = [window_attn] * depth if not isinstance(window_attn, list) else window_attn
         window_size = [window_size] * depth if not isinstance(window_size, list) else window_size

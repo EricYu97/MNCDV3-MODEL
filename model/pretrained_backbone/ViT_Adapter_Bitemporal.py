@@ -105,7 +105,7 @@ class ViTAdapter(TIMMVisionTransformer):
         c1_2, c2_2, c3_2, c4_2 = self.spm(x2)
         
         
-        c1, c2, c3, c4 =c1_1 - c1_2, c2_1 - c2_2, c3_1 - c3_2, c4_1 - c4_2 # Difference-based Bitemporal Fusion
+        c1, c2, c3, c4 = torch.abs(c1_1 - c1_2), torch.abs(c2_1 - c2_2), torch.abs(c3_1 - c3_2), torch.abs(c4_1 - c4_2) # Difference-based Bitemporal Fusion
         c2, c3, c4 = self._add_level_embed(c2, c3, c4)
         c = torch.cat([c2, c3, c4], dim=1)
 
@@ -160,7 +160,7 @@ class ViTAdapter(TIMMVisionTransformer):
         x1_features_seg=[f1,f2,f3,f4]
 
         if self.add_vit_feature:
-            x1, x2, x3, x4 = outs_x1
+            x1, x2, x3, x4 = outs_x2
             x1 = F.interpolate(x1, scale_factor=4, mode='bilinear', align_corners=False)
             x2 = F.interpolate(x2, scale_factor=2, mode='bilinear', align_corners=False)
             x4 = F.interpolate(x4, scale_factor=0.5, mode='bilinear', align_corners=False)

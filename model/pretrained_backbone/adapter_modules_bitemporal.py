@@ -175,14 +175,14 @@ class InteractionBlock(nn.Module):
             self.extra_extractors = None
 
     def forward(self, x1, x2, c, blocks, deform_inputs1, deform_inputs2, H, W):
-        x = x1 - x2
+        x = torch.abs(x1 - x2)
         x = self.injector(query=x, reference_points=deform_inputs1[0],
                           feat=c, spatial_shapes=deform_inputs1[1],
                           level_start_index=deform_inputs1[2])
         for idx, blk in enumerate(blocks):
             x1 = blk(x1, H, W)
             x2 = blk(x2, H, W)
-        x = x1 - x2
+        x = torch.abs(x1 - x2)
         c = self.extractor(query=c, reference_points=deform_inputs2[0],
                            feat=x, spatial_shapes=deform_inputs2[1],
                            level_start_index=deform_inputs2[2], H=H, W=W)

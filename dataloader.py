@@ -47,11 +47,12 @@ area_split = {
     ]
 }
 class MNCDV3_Dataset(torch.utils.data.Dataset):
-    def __init__(self, root_path, normalization=None, mode='train'):
+    def __init__(self, root_path, normalization=None, mode='train', filter_empty=True, cache_file='mask_stats.npy'):
         self.root_path = root_path
         self.normalization = normalization
-        
         self.mode=mode
+        self.filter_empty = filter_empty if mode == 'train' else False  # val/test 不过滤
+
         self.get_domain_data_list(self.root_path)
 
         self.palette=np.array([[255, 255, 255],
@@ -61,6 +62,53 @@ class MNCDV3_Dataset(torch.utils.data.Dataset):
                            [255, 255, 0],
                            [255, 0, 255]], np.uint8)
         self.normalize_function = tfs.Normalize(mean=MNCD_Dataset_Patchwise_Stats['mean'],std=MNCD_Dataset_Patchwise_Stats['std'])
+
+        # optionally filter empty samples
+        if self.filter_empty:
+            self.filter_empty_samples(cache_file)
+        
+    def filter_empty_samples(self, cache_file):
+        """
+        过滤掉 pre_label 和 post_label 都没有前景的样本。
+        使用缓存文件加速后续启动。
+        """
+        cache_path = os.path.join(self.root_path, cache_file)
+
+        # 如果缓存存在，直接加载结果
+        if os.path.exists(cache_path):
+            mask_stats = np.load(cache_path, allow_pickle=True).item()
+        else:
+            mask_stats = {}
+
+            print("Scanning masks to filter empty samples (only runs once)...")
+
+            for sample in self.all_data_list:
+                domain, sample_id = sample.split('#')
+                sample_path = os.path.join(self.root_path, domain)
+
+                pre_label_path = os.path.join(sample_path, 'pre', 'label', f'pre_label_{sample_id}.png')
+                post_label_path = os.path.join(sample_path, 'post', 'label', f'post_label_{sample_id}.png')
+
+                pre_label = np.asarray(Image.open(pre_label_path))
+                post_label = np.asarray(Image.open(post_label_path))
+
+                pre_label_int = self.rgb_to_label(pre_label, self.palette)
+                post_label_int = self.rgb_to_label(post_label, self.palette)
+
+                # 判断是否含前景
+                has_fg = (pre_label_int.sum() > 0 or post_label_int.sum() > 0)
+                mask_stats[sample] = has_fg
+
+            # 保存缓存
+            np.save(cache_path, mask_stats)
+
+        # 根据 mask_stats 过滤无前景样本
+        before = len(self.all_data_list)
+        self.all_data_list = [s for s in self.all_data_list if mask_stats[s]]
+        after = len(self.all_data_list)
+
+        print(f"[MNCD] Filtered empty samples: {before-after} removed, {after} kept.")
+
     def get_domain_data_list(self, root_path):
         # self.domains= os.listdir(root_path)
         self.domains= area_split['train'] if self.mode =='train' else area_split['val'] if self.mode=='val' else area_split['test']
@@ -158,22 +206,38 @@ class MNCDV3_Dataset(torch.utils.data.Dataset):
         return pre_image, post_image, pre_label, post_label, change_label
 
 def main():
-    root_path='MNCDV3_Bitemporal_Cropped_Size256_Step128_2788Samples'
+    root_path='MNCDV3_Bitemporal_Cropped_Size224_Step112_3695Samples'
     dataset = MNCDV3_Dataset(root_path, normalization=True)
 
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True, num_workers=2)
 
-    for i, (pre_image, post_image, pre_label, post_label) in enumerate(dataloader):
-        print(f'Batch {i}:')
-        print(f'  Pre Image Shape: {pre_image}')
-        print(f'  Post Image Shape: {post_image}')
-        print(f'  Pre Label Shape: {pre_label.shape}')
-        print(f'  Post Label Shape: {post_label.shape}')
+    seg_count=[0,0,0,0,0,0]
+    cd_count=[0,0]
+    for i, (pre_image, post_image, pre_label, post_label, change_label) in enumerate(dataloader):
+        # print(f'Batch {i}:')
+        # print(f'  Pre Image Shape: {pre_image}')
+        # print(f'  Post Image Shape: {post_image}')
+        # print(f'  Pre Label Shape: {pre_label.shape}')
+        # print(f'  Post Label Shape: {post_label.shape}')
+        # print(f'  Change Label Shape: {change_label.shape}')
 
-        print(f'  Pre Label Unique Classes: {torch.unique(pre_label)}')
-        print(f'  Post Label Unique Classes: {torch.unique(post_label)}')
-        if i == 100:  # Just to limit output for demonstration
-            break
+        # print(f'  Pre Label Unique Classes: {torch.unique(pre_label)}')
+        # print(f'  Post Label Unique Classes: {torch.unique(post_label)}')
+        # if i == 100:  # Just to limit output for demonstration
+        #     break
+
+        for i in range(6):
+            seg_count[i] += torch.sum(pre_label == i).item()
+            seg_count[i] += torch.sum(post_label == i).item()
+        for i in range(2):
+            cd_count[i] += torch.sum(change_label == i).item()
+
+    print('Semantic Segmentation Class Distribution:', seg_count)
+    print('Semantic Segmentation Class Distribution Percentages:', [count/sum(seg_count) for count in seg_count])
+    print('Change Detection Class Distribution:', cd_count)
+    print('Change Detection Class Distribution Percentages:', [count/sum(cd_count) for count in cd_count])
+
+
 
 if __name__=="__main__":
     main()

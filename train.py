@@ -59,7 +59,7 @@ def train_one_epoch(model, dataloader, optimizer, scheduler, accelerator):
         scheduler.step()
         running_loss += loss.item()
 
-        if i % 50 == 49:
+        if i % 20 == 19:
             print(f"  Batch {i+1}, Total Loss: {loss.item():.4f}, Seg_Loss: {x1_seg_loss.item()+x2_seg_loss.item():.4f}, CD_Loss: {cd_loss.item():.4f}")
     epoch_loss = running_loss/(i+1)
     return epoch_loss

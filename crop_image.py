@@ -157,11 +157,11 @@ def read_image_per_domain(domain_info):
 
     if pre_label_path:
         pre_label = np.array(Image.open(pre_label_path))
-        pre_label=pre_label.transpose(2,1,0)
+        pre_label=pre_label.transpose(2,0,1)
 
     if post_label_path:
         post_label = np.array(Image.open(post_label_path))
-        post_label=post_label.transpose(2,1,0)
+        post_label=post_label.transpose(2,0,1)
 
     return pre_image, post_image, pre_label, post_label
 
@@ -334,6 +334,8 @@ def main():
 
     for domain, stats in domain_stats.items():
         pre_image, post_image, pre_label, post_label = read_image_per_domain(stats)
+
+        assert pre_image.shape[1:]==post_image.shape[1:]==pre_label.shape[1:]==post_label.shape[1:], f"Mismatch in data shapes for domain {domain}"
         # print(pre_image.shape, post_image.shape, pre_label.shape, post_label.shape)
         if pre_image is not None:
             domain_save_path_pre_img = os.path.join(save_path, domain, 'pre', 'image')

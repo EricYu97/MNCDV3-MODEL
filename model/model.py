@@ -3,10 +3,12 @@ from .decoder.upernet import SemanticSegmentationHead, ChangeDetectionHead
 import torch.nn as nn
 from thop import profile
 import torch 
+from .pretrained_backbone.ViT_Adapter import ViTAdapter
 
 class MNCDV3_Model(nn.Module):
     def __init__(self, **kwargs):
         super(MNCDV3_Model, self).__init__()
+
         self.backbone = ViTAdapter(
         pretrain_size=224,
         img_size=224,
@@ -30,7 +32,6 @@ class MNCDV3_Model(nn.Module):
         pretrained=None,
         use_extra_extractor=True,
         with_cp=False,
-        freeze_vit=False,
         **kwargs
         )
         self.CD_decoder=ChangeDetectionHead(num_labels=2, embed_dims=768, img_size=224, fusion_strategy='diff')
@@ -38,7 +39,11 @@ class MNCDV3_Model(nn.Module):
 
 
     def forward(self, x1, x2, x1_label=None, x2_label=None, change_label=None):
-        CD_Feature, x1_features_seg, x2_features_seg = self.backbone(x1, x2)
+
+        x1_features_seg, x2_features_seg=self.backbone(x1), self.backbone(x2)
+        CD_Feature=[torch.abs(f1 - f2) for f1, f2 in zip(x1_features_seg, x2_features_seg)]  # Difference-based CD Feature
+
+        # CD_Feature, x1_features_seg, x2_features_seg = self.backbone(x1, x2)
 
         cd_outputs = self.CD_decoder(CD_Feature, labels=change_label)
         x1_seg_outputs = self.seg_decoder(x1_features_seg, labels=x1_label)

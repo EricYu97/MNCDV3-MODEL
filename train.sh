@@ -7,7 +7,9 @@
 #SBATCH --mem-per-cpu=8G
 #SBATCH --gres=gpu:4
 
-#SBATCH --partition=gpu-h100
+#SBATCH --partition=haicu_a100
+#SBATCH --account=haicu
+
 # module load python/3.11
 module load apptainer
 
