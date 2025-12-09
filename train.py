@@ -12,7 +12,7 @@ import torch.nn.functional as F
 def train(args):
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
     accelerator = Accelerator(kwargs_handlers=[ddp_kwargs])
-    epoch=20
+    epoch=100
 
     train_dataset=MNCDV3_Dataset(root_path=args.root_path, normalization=True, mode='train')
     val_dataset=MNCDV3_Dataset(root_path=args.root_path, normalization=True, mode='val')
@@ -32,7 +32,8 @@ def train(args):
     for ep in range(epoch):
         epoch_loss = train_one_epoch(model, train_dataloader, optimizer, scheduler, accelerator)
         print(f"Epoch {ep+1}/{epoch}, Loss: {epoch_loss:.4f}")
-        if ep % 2 == 1:
+        # if ep % 2 == 1:
+        if True:
             evaluate_model(model, val_dataloader, ep+1, accelerator, save_suffix='MNCDV3_Model')
 
 def train_one_epoch(model, dataloader, optimizer, scheduler, accelerator):
@@ -52,7 +53,9 @@ def train_one_epoch(model, dataloader, optimizer, scheduler, accelerator):
         x2_seg_loss = x2_seg_outputs.loss
 
         # Baseline: sum all losses
-        loss = cd_loss + x1_seg_loss + x2_seg_loss
+        # loss = cd_loss + x1_seg_loss + x2_seg_loss
+
+        loss=x1_seg_loss+x2_seg_loss
 
         accelerator.backward(loss)
         optimizer.step()
@@ -120,9 +123,9 @@ def evaluate_model(model, val_dataloader, epoch, accelerator, save_suffix):
 
             cd_pred = torch.argmax(cd_logits, dim=1)
             m_f1.update(cd_pred.flatten(), change_label.flatten())
-            print("Uniques", torch.unique(cd_pred), torch.unique(x1_pred), torch.unique(x2_pred), torch.unique(change_label), torch.unique(pre_label), torch.unique(post_label))
-            print("Counts", torch.count_nonzero(cd_pred), torch.count_nonzero(x1_pred), torch.count_nonzero(x2_pred), torch.count_nonzero(change_label), torch.count_nonzero(pre_label), torch.count_nonzero(post_label))
-            print("Shape", x1_pred.shape, x2_pred.shape, cd_pred.shape, pre_label.shape, post_label.shape, change_label.shape)
+            # print("Uniques", torch.unique(cd_pred), torch.unique(x1_pred), torch.unique(x2_pred), torch.unique(change_label), torch.unique(pre_label), torch.unique(post_label))
+            # print("Counts", torch.count_nonzero(cd_pred), torch.count_nonzero(x1_pred), torch.count_nonzero(x2_pred), torch.count_nonzero(change_label), torch.count_nonzero(pre_label), torch.count_nonzero(post_label))
+            # print("Shape", x1_pred.shape, x2_pred.shape, cd_pred.shape, pre_label.shape, post_label.shape, change_label.shape)
 
     # Compute metrics (may return tensors moved to device)
     cd_f1 = m_f1.compute()
@@ -132,7 +135,7 @@ def evaluate_model(model, val_dataloader, epoch, accelerator, save_suffix):
 
 
     if accelerator.is_local_main_process:
-        print(f"Evaluation for Epoch {epoch} Completed, Seg_F1: {seg_f1}, CD_F1: {cd_f1}")
+        print(f"Evaluation for Epoch {epoch} Completed, Seg_F1: {seg_f1}, Averaged_Seg_F1: {sum(seg_f1)/len(seg_f1)},CD_F1: {cd_f1}")
 
         save_pretrained_path = f"./exp/{save_suffix}/"
         os.makedirs(os.path.dirname(save_pretrained_path), exist_ok=True)

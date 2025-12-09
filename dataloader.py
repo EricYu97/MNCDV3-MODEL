@@ -47,7 +47,7 @@ area_split = {
     ]
 }
 class MNCDV3_Dataset(torch.utils.data.Dataset):
-    def __init__(self, root_path, normalization=None, mode='train', filter_empty=True, cache_file='mask_stats.npy'):
+    def __init__(self, root_path, normalization=None, mode='train', filter_empty=False, cache_file='mask_stats.npy'):
         self.root_path = root_path
         self.normalization = normalization
         self.mode=mode

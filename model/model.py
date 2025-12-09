@@ -1,4 +1,4 @@
-from .pretrained_backbone.ViT_Adapter_Bitemporal import ViTAdapter
+# from .pretrained_backbone.ViT_Adapter_Bitemporal import ViTAdapter
 from .decoder.upernet import SemanticSegmentationHead, ChangeDetectionHead
 import torch.nn as nn
 from thop import profile
@@ -29,7 +29,7 @@ class MNCDV3_Model(nn.Module):
         cffn_ratio=0.25,
         deform_ratio=1.0,
         add_vit_feature=True,
-        pretrained=None,
+        pretrained="/bigdata/3dabc/MNCD/MNCDV3-MODEL/pretrained_weights/deit_base_patch16_224-b5f2ef4d.pth",
         use_extra_extractor=True,
         with_cp=False,
         **kwargs
